@@ -18,7 +18,7 @@ bun start
 
 ## FAQ
 
-### How is this different than Claude Code?
+### How is this different than lazydocker?
 
 It's very similar to lazydocker in terms of capability. Here are the key differences:
 
