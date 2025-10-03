@@ -1,6 +1,6 @@
 <p align="center">The AI coding agent built for the terminal.</p>
 
-[![OpenDocker Terminal UI](src/assets/images/banner.jpg)]
+![OpenDocker Terminal UI](src/assets/images/banner.jpg)
 
 ## Usage
 
