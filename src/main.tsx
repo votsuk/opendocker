@@ -1,14 +1,20 @@
 import { useRenderer, render, useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { useState } from "react";
-import DockerSerivcesBox from "./components/DockerServicesBox";
-import DockerServiceLogsBox from "./components/DockerServiceLogsBox";
-import { colors } from "./utils/colors";
+import { useState, useEffect } from "react";
+import ContainersPane from "./components/ContainersPane";
+import LogsPane from "./components/LogsPane";
+import { colors } from "./utils/styling";
 import { TextAttributes } from "@opentui/core";
+import ImagesPane from "./components/ImagesPane";
+import VolumesPane from "./components/VolumesPanes";
 
 function App() {
     const dimensions = useTerminalDimensions();
     const renderer = useRenderer();
-    const [activeService, setActiveService] = useState<string | null>(null);
+
+    const [pwd, setPwd] = useState<string>("");
+    useEffect(() => {
+        Bun.$`pwd`.quiet().then(result => setPwd(result.text()));
+    }, []);
 
     useKeyboard((key) => {
         if (key.name === "q") {
@@ -36,8 +42,16 @@ function App() {
                 paddingTop={1}
                 paddingBottom={1}
             >
-                <DockerSerivcesBox activeService={activeService} setActiveService={setActiveService} />
-                <DockerServiceLogsBox activeService={activeService} />
+                <box
+                    flexDirection="column"
+                    width="50%"
+                    gap={1}
+                >
+                    <ContainersPane />
+                    <ImagesPane />
+                    <VolumesPane />
+                </box>
+                <LogsPane activeService={null} />
             </box>
             <box
                 height={1}
@@ -53,7 +67,7 @@ function App() {
                         <text fg={colors.textMuted}>alpha</text>
                     </box>
                     <box paddingLeft={1} paddingRight={1}>
-                        {/* <text fg={colors.textMuted}>{process.cwd().replace(Global.Path.home, "~")}</text> */}
+                        <text fg={colors.textMuted}>~{pwd}</text>
                     </box>
                 </box>
             </box>
