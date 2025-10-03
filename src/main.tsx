@@ -2,18 +2,22 @@ import { useRenderer, render, useKeyboard, useTerminalDimensions } from "@opentu
 import { useState, useEffect } from "react";
 import ContainersPane from "./components/ContainersPane";
 import LogsPane from "./components/LogsPane";
-import { colors } from "./utils/styling";
+import { colors, padding } from "./utils/styling";
 import { TextAttributes } from "@opentui/core";
 import ImagesPane from "./components/ImagesPane";
 import VolumesPane from "./components/VolumesPanes";
+import { useApplicationStore } from "./stores/application";
+import { SplitBorder } from "./components/Border";
 
 function App() {
+    const { activePane, setActivePane } = useApplicationStore((state) => state);
     const dimensions = useTerminalDimensions();
     const renderer = useRenderer();
-
     const [pwd, setPwd] = useState<string>("");
+
     useEffect(() => {
         Bun.$`pwd`.quiet().then(result => setPwd(result.text()));
+        setActivePane("Containers");
     }, []);
 
     useKeyboard((key) => {
@@ -27,6 +31,7 @@ function App() {
         }
     })
 
+
     return (
         <box 
             width={dimensions.width}
@@ -35,23 +40,20 @@ function App() {
         >
             <box
                 flexDirection="row"
-                flexGrow={1}
                 gap={2}
-                paddingLeft={2}
-                paddingRight={2}
-                paddingTop={1}
-                paddingBottom={1}
+                width="100%"
+                {...padding}
             >
                 <box
                     flexDirection="column"
-                    width="50%"
+                    width="30%"
                     gap={1}
                 >
-                    <ContainersPane />
-                    <ImagesPane />
-                    <VolumesPane />
+                    <ContainersPane flexGrow={1} />
+                    <ImagesPane flexGrow={1} />
+                    <VolumesPane flexGrow={1} />
                 </box>
-                <LogsPane activeService={null} />
+                <LogsPane />
             </box>
             <box
                 height={1}
@@ -68,6 +70,12 @@ function App() {
                     </box>
                     <box paddingLeft={1} paddingRight={1}>
                         <text fg={colors.textMuted}>~{pwd}</text>
+                    </box>
+                </box>
+                <box flexDirection="row" gap={1}>
+                    <text fg={colors.textMuted}>tab</text>
+                    <box backgroundColor={colors.accent} paddingLeft={1} paddingRight={1} {...SplitBorder} borderColor={colors.backgroundPanel}>
+                        <text fg={colors.backgroundPanel} attributes={TextAttributes.BOLD}>{activePane}</text>
                     </box>
                 </box>
             </box>
