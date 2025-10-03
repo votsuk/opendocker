@@ -1,10 +1,6 @@
-# opendocker
+<p align="center">The AI coding agent built for the terminal.</p>
 
-## TODO
-
-- [X] Add container health status
-- [ ] Add filter logs input
-- [X] Add docker service polling mechanism for health status, logs, and new or removed containers
+[![OpenDocker Terminal UI](src/assets/images/banner.jpg)]
 
 ## Usage
 
@@ -17,7 +13,15 @@ bun install
 To run:
 
 ```bash
-bun run index.ts
+bun start
 ```
 
-This project was created using `bun init` in bun v1.2.23. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## FAQ
+
+### How is this different than Claude Code?
+
+It's very similar to lazydocker in terms of capability. Here are the key differences:
+
+- It looks good
+- It's easier on the eyes
+- It looks good
