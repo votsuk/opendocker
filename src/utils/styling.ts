@@ -15,3 +15,10 @@ export const colors = {
     borderActive: '#606060',
     borderSubtle: '#3c3c3c',
 }
+
+export const padding = {
+    paddingTop: 1,
+    paddingBottom: 1,
+    paddingLeft: 2,
+    paddingRight: 2,
+}

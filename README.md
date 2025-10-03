@@ -1,5 +1,13 @@
 # opendocker
 
+## TODO
+
+- [X] Add container health status
+- [ ] Add filter logs input
+- [X] Add docker service polling mechanism for health status, logs, and new or removed containers
+
+## Usage
+
 To install dependencies:
 
 ```bash
