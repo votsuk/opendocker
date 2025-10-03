@@ -1,11 +1,11 @@
 import { create } from "zustand";
 
-interface ImageStore {
-    images: any;
-    setImages: (images: any) => void;
+export interface ImageStore {
+    images: string[];
+    setImages: (images: string[]) => void;
 }
 
 export const useImageStore = create<ImageStore>((set) => ({
   images: [],
-  setImages: (images: any) => set({ images }),
+  setImages: (images: string[]) => set({ images }),
 }));

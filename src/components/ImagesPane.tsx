@@ -1,10 +1,15 @@
-import { useEffect } from "react";
+ import { useEffect, useRef } from "react";
+import { useKeyboard } from "@opentui/react";
 import Pane from "./Pane";
 import { colors } from "../utils/styling";
 import { useImageStore } from "../stores/images";
+import { useApplicationStore } from "../stores/application";
+import type { ScrollBoxRenderable } from "@opentui/core";
 
 export default function ImagesPane() {
+    const { activePane, setActivePane } = useApplicationStore((state) => state);
     const { images, setImages } = useImageStore();
+    const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
 
     useEffect(() => {
         const process = Bun.spawn(
@@ -33,22 +38,46 @@ export default function ImagesPane() {
         return () => process.kill();
     }, []);
 
+    useKeyboard((key) => {
+        if (activePane !== "Images") {
+            return;
+        }
+
+        if (key.name === "left") {
+            setActivePane("Containers");
+        }
+
+        if (key.name === "right" || key.name === "tab") {
+            setActivePane("Volumes");
+        }
+    });
+
     return (
         <Pane
             title="Images"
-            active={false}
-            flexShrink={1}
+            width="100%"
+            active={activePane === "Images"}
+            flexDirection="column"
         >
-            {images.map((item, index) => {
-                return <box>
-                    <text
-                        key={index}
-                        content={item}
-                        fg={colors.textMuted}
-                    />
-                </box>
-            })}
-            {images.length < 1 && <text fg={colors.textMuted}>No Images</text>}
+            <scrollbox
+                ref={scrollBoxRef}
+                scrollY={true}
+                stickyScroll={true}
+                stickyStart="top"
+            >
+                {images.map((item: string, index: number) => {
+                    return (
+                        <box> 
+                            <text
+                                key={index}
+                                content={item}
+                                fg={colors.textMuted}
+                            />
+                        </box>
+                     )
+                })}
+                {images.length < 1 && <text fg={colors.textMuted}>No Images</text>}
+            </scrollbox>
         </Pane>
     )
 }

@@ -1,8 +1,9 @@
 import { create } from "zustand";
 
-type Container = {
+export type Container = {
     name: string;
     status: string;
+    health: string;
 }
 
 interface ContainerStore {

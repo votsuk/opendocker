@@ -14,6 +14,7 @@ export default function LogsPane() {
         if (!activeContainer) return;
         
         setState("loading");
+        setLogs("");
         const process = Bun.spawn(["docker", "logs", "--follow", activeContainer.name], {
             stdout: "pipe",
             stderr: "pipe",
@@ -45,10 +46,13 @@ export default function LogsPane() {
         }
     }, [logs]);
 
+    const title = `Logs | ${activeContainer?.name} | ${activeContainer?.status}`;
+
     return (
         <Pane
-            title="Logs"
+            title={title}
             flexDirection="column"
+            width="70%"
         >
             <scrollbox
                 ref={scrollBoxRef}
@@ -66,7 +70,7 @@ export default function LogsPane() {
             >
                 {state === "loading" && <text fg={colors.textMuted}>Loading...</text>}
                 {state === "error" && <text fg={colors.textMuted}>Error fetching logs</text>}
-                {state === "success" && <text fg={colors.textMuted}>{logs || "No logs available"}</text>}
+                {state === "success" && <text fg={colors.textMuted} wrap={true}>{logs || "No logs available"}</text>}
                 {state === "idle" && <text fg={colors.textMuted}>No logs available</text>}
             </scrollbox>
         </Pane>
