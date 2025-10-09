@@ -3,15 +3,22 @@ import { colors } from "../utils/styling";
 import type { ScrollBoxRenderable } from "@opentui/core";
 import Pane from "./Pane";
 import { useContainerStore } from "../stores/containers";
+import { useApplicationStore } from "../stores/application";
 
 export default function LogsPane() {
+    const { activePane } = useApplicationStore((state) => state);
     const { activeContainer } = useContainerStore((state) => state);
     const [logs, setLogs] = useState<string>("");
     const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
     const [state, setState] = useState("idle");
 
     useEffect(() => {
-        if (!activeContainer) return;
+        // This causes the application to crash currently.
+        // TODO: Fix this.
+        // if (activePane === "containers") {
+        //     cleanup();
+        //     return;
+        // };
         
         setState("loading");
         setLogs("");
@@ -45,6 +52,11 @@ export default function LogsPane() {
             scrollBoxRef.current.scrollTo({ x: 0, y: scrollBoxRef.current.scrollHeight });
         }
     }, [logs]);
+
+    function cleanup() {
+        setState("idle");
+        setLogs("");
+    }
 
     const title = `Logs | ${activeContainer?.name} | ${activeContainer?.status}`;
 

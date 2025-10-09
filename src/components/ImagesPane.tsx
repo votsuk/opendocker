@@ -1,4 +1,4 @@
- import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useKeyboard } from "@opentui/react";
 import Pane from "./Pane";
 import { colors } from "../utils/styling";

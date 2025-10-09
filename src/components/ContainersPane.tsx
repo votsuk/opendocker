@@ -1,10 +1,11 @@
- import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useKeyboard } from "@opentui/react";
 import { colors } from "../utils/styling";
 import Pane from "./Pane";
 import { useContainerStore } from "../stores/containers";
 import { useApplicationStore } from "../stores/application";
 import type { ScrollBoxRenderable } from "@opentui/core";
+import { getDockerContainers } from "../lib/docker";
 
 export default function ContainersPane() {
     const { activePane, setActivePane } = useApplicationStore((state) => state);
@@ -14,57 +15,15 @@ export default function ContainersPane() {
     const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
 
     useEffect(() => {
-        const process = Bun.spawn(
-            ["docker", "ps", "-a", "--format", "{{.Names}}"],
-            {stdout: "pipe", stderr: "pipe"}
-        );
+        if (!active) return;
 
-        async function read() {
-            try {
-                const output = await new Response(process.stdout).text();
-                const lines = output.split("\n").filter(Boolean);
-                const objs = lines.map((container) => {
-                    return { name: container };
-                });
-
-                // Enrich with health status
-                const enriched = await Promise.all(objs.map(async (container) => {
-                    const inspectProcess = Bun.spawn(
-                        ["docker", "inspect", container.name, "--format", "{{.State.Status}}:{{if .State.Health}}{{.State.Health.Status}}{{end}}"],
-                        {stdout: "pipe", stderr: "pipe"}
-                    );
-
-                    try {
-                        const output = await new Response(inspectProcess.stdout).text();
-                        const [status, healthOutput] = output.split(":");
-                        const health = healthOutput.trim() || "";
-                        return { ...container, status: status, health: health };
-                    } catch (error) {
-                        return { ...container, status: undefined, health: undefined };
-                    } finally {
-                        inspectProcess.kill();
-                    }
-                }));
-
-                setContainers(enriched);
-
-                if (!active) {
-                    return;
-                }
-
-                if (!activeContainer && enriched.length > 0) {
-                    setActiveContainer(enriched[0]);
-                }
-            } catch (error) {
-                console.error(error);
-            }
+        async function getContainers() {
+            const c = await getDockerContainers();
+            setContainers(c);
+            setActiveContainer(c[0]);
         }
 
-        read();
-
-        return () => {
-            process.kill();
-        }
+        getContainers();
     }, [active]);
 
     useKeyboard((key) => {
