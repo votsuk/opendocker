@@ -1,27 +1,13 @@
-<p align="center">The AI coding agent built for the terminal.</p>
+<p align="center">A TUI Built for Docker Management and Log Monitoring.</p>
 
 ![OpenDocker Terminal UI](src/assets/images/banner.jpg)
 
-## Usage
+---
 
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
+### Installation
 
 ```bash
-bun start
+# Package managers
+npm i -g opendocker        # or bun/pnpm/yarn
 ```
-
-## FAQ
-
-### How is this different than Claude Code?
-
-It's very similar to lazydocker in terms of capability. Here are the key differences:
-
-- It looks good
-- It's easier on the eyes
-- It looks good
+---

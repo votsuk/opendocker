@@ -10,6 +10,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
     const { activePane, setActivePane } = useApplicationStore((state) => state);
     const dimensions = useTerminalDimensions();
     const [pwd, setPwd] = useState<string>("");
+    const version = "v0.1.0";
 
     useEffect(() => {
         Bun.$`pwd`.quiet().then(result => setPwd(result.text()));
@@ -42,7 +43,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
                     <box flexDirection="row" backgroundColor={colors.backgroundElement} paddingLeft={1} paddingRight={1}>
                         <text fg={colors.textMuted}>open</text>
                         <text attributes={TextAttributes.BOLD}>docker </text>
-                        <text fg={colors.textMuted}>alpha</text>
+                        <text fg={colors.textMuted}>{version}</text>
                     </box>
                     <box paddingLeft={1} paddingRight={1}>
                         <text fg={colors.textMuted}>~{pwd}</text>
