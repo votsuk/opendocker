@@ -39,23 +39,23 @@ export default function ImagesPane() {
     }, []);
 
     useKeyboard((key) => {
-        if (activePane !== "Volumes") {
+        if (activePane !== "volumes") {
             return;
         }
 
         if (key.name === "left") {
-            setActivePane("Images");
+            setActivePane("images");
         }
 
         if (key.name === "right" || key.name === "tab") {
-            setActivePane("Containers");
+            setActivePane("containers");
         }
     });
 
     return (
         <Pane
             title="Volumes"
-            active={activePane === "Volumes"}
+            active={activePane === "volumes"}
             width="100%"
             flexDirection="column"
         >
@@ -67,13 +67,12 @@ export default function ImagesPane() {
                 viewportOptions={{
                     flexGrow: 1
                 }}
-                marginTop={1}
             >
                 {volumes.map((item, index) => {
                     return <box>
                         <text
                             key={index}
-                            content={`- ${item}`}
+                            content={`[*] ${item}`}
                             fg={colors.textMuted}
                         />
                     </box>

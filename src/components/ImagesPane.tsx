@@ -39,16 +39,16 @@ export default function ImagesPane() {
     }, []);
 
     useKeyboard((key) => {
-        if (activePane !== "Images") {
+        if (activePane !== "images") {
             return;
         }
 
         if (key.name === "left") {
-            setActivePane("Containers");
+            setActivePane("containers");
         }
 
         if (key.name === "right" || key.name === "tab") {
-            setActivePane("Volumes");
+            setActivePane("volumes");
         }
     });
 
@@ -56,7 +56,7 @@ export default function ImagesPane() {
         <Pane
             title="Images"
             width="100%"
-            active={activePane === "Images"}
+            active={activePane === "images"}
             flexDirection="column"
         >
             <scrollbox
@@ -67,7 +67,7 @@ export default function ImagesPane() {
             >
                 {images.map((item: string, index: number) => {
                     return (
-                        <box> 
+                        <box key={index}> 
                             <text
                                 key={index}
                                 content={item}

@@ -4,6 +4,7 @@ export type Container = {
     name: string;
     status: string;
     health: string;
+    state: string;
 }
 
 interface ContainerStore {

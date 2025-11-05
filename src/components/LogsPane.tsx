@@ -1,90 +1,128 @@
-import { useState, useEffect, useRef } from "react";
-import { colors } from "../utils/styling";
-import type { ScrollBoxRenderable } from "@opentui/core";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { colors, termColors } from "../utils/styling";
+import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core";
 import Pane from "./Pane";
 import { useContainerStore } from "../stores/containers";
 import { useApplicationStore } from "../stores/application";
 
+type LogEntry = {
+    text: string;
+    type: 'stdout' | 'stderr';
+};
+
 export default function LogsPane() {
     const { activePane } = useApplicationStore((state) => state);
     const { activeContainer } = useContainerStore((state) => state);
-    const [logs, setLogs] = useState<string>("");
+    const [logs, setLogs] = useState<LogEntry[]>([]);
     const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
-    const [state, setState] = useState("idle");
 
     useEffect(() => {
-        // This causes the application to crash currently.
-        // TODO: Fix this.
-        // if (activePane === "containers") {
-        //     cleanup();
-        //     return;
-        // };
-        
-        setState("loading");
-        setLogs("");
-        const process = Bun.spawn(["docker", "logs", "--follow", activeContainer.name], {
+        if (!activeContainer || activePane !== "containers") {
+            cleanup();
+            return;
+        };
+
+        setLogs([]);
+        const process = Bun.spawn([
+            "docker",
+            "logs",
+            "--follow",
+            "--tail",
+            "100",
+            activeContainer.name,
+        ], {
             stdout: "pipe",
             stderr: "pipe",
         });
 
-        async function read() {
+        async function readStream(stream: ReadableStream, type: 'stdout' | 'stderr') {
+            const decoder = new TextDecoder();
+            const reader = stream.getReader();
+
             try {
-                const reader = process.stdout.getReader();
-                setState("success");
-                
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    setLogs(prev => prev + new TextDecoder().decode(value));
+
+                    const text = decoder.decode(value, { stream: true });
+                    // Split by newlines and filter out empty lines
+                    const lines = text.split('\n').filter(line => line.trim().length > 0);
+                    
+                    if (lines.length > 0) {
+                        setLogs(prev => {
+                            const newEntries = lines.map(line => ({
+                                text: line,
+                                type
+                            }));
+                            return [...prev, ...newEntries];
+                        });
+                    }
                 }
-            } catch (error) {
-                setState("error");
-            }
+            } catch (error) {}
         }
 
-        read();
+        readStream(process.stdout, 'stdout');
+        readStream(process.stderr, 'stderr');
 
-        return () => process.kill();
-    }, [activeContainer]);
+        return () => {
+            process.kill();
+            cleanup();
+        }
+    }, [activePane, activeContainer]);
 
     useEffect(() => {
-        if (scrollBoxRef.current && logs) {
+        if (scrollBoxRef.current && logs.length > 0) {
             scrollBoxRef.current.scrollTo({ x: 0, y: scrollBoxRef.current.scrollHeight });
         }
     }, [logs]);
 
     function cleanup() {
-        setState("idle");
-        setLogs("");
+        setLogs([]);
     }
 
-    const title = `Logs | ${activeContainer?.name} | ${activeContainer?.status}`;
+    const output = useMemo(() => {
+        if (logs.length === 0) {
+            return <text fg={colors.textMuted}>No logs available</text>;
+        }
+
+        return logs.map(log => (
+            <text
+                fg={log.type === 'stderr' ? termColors.red11 : colors.textMuted}
+            >
+                {log.text}
+            </text>
+        ));
+    }, [logs]);
 
     return (
         <Pane
-            title={title}
+            title="Logs"
             flexDirection="column"
             width="70%"
         >
-            <scrollbox
-                ref={scrollBoxRef}
-                scrollY={true}
-                stickyScroll={true}
-                stickyStart="bottom"
-                viewportOptions={{
-                    flexGrow: 1
-                }}
-                contentOptions={{
-                    flexDirection: "column",
-                    gap: 1
-                }}
-                marginTop={1}
-            >
-                {state === "loading" && <text fg={colors.textMuted}>Loading...</text>}
-                {state === "error" && <text fg={colors.textMuted}>Error fetching logs</text>}
-                {state === "success" && <text fg={colors.textMuted} wrap={true}>{logs || "No logs available"}</text>}
-                {state === "idle" && <text fg={colors.textMuted}>No logs available</text>}
-            </scrollbox>
+            <box flexDirection="column" gap={1} height="100%">
+                <box flexDirection="row" gap={2} height="auto">
+                    <box flexDirection="column" gap={1}>
+                        <text fg={termColors.purple11} attributes={TextAttributes.BOLD}>Container</text>
+                        <text>{activeContainer?.name}</text>
+                    </box>
+                    <box flexDirection="column">
+                        <text fg={termColors.purple11} attributes={TextAttributes.BOLD}>Status</text>
+                        <text>{activeContainer?.status || "None"}</text>
+                    </box>
+                </box>
+                <scrollbox
+                    ref={scrollBoxRef}
+                    scrollY={true}
+                    stickyScroll={true}
+                    stickyStart="bottom"
+                    height="100%"
+                >
+                    <box flexDirection="column" height="auto">
+                        {output}
+                    </box>
+                </scrollbox>
+            </box>
         </Pane>
     )
 }

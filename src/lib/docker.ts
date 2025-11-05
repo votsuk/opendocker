@@ -1,43 +1,68 @@
-import type { Container } from "../stores/containers";
 
-export async function getDockerContainers(): Promise<Container[]> {
-    try {
-        const process = Bun.spawn(
-            ["docker", "ps", "-a", "--format", "{{.Names}}"],
-            {stdout: "pipe", stderr: "pipe"}
-        );
+export class Docker {
+    private socket = "/var/run/docker.sock";
+    
+    private async request(path: string) {
+        try {
+            const process = Bun.spawn([
+                "curl", "-s", "--unix-socket", this.socket, 
+                `http://localhost${path}`
+            ], { stdout: "pipe", stderr: "pipe" });
 
-        const output = await new Response(process.stdout).text();
-        process.kill();
+            const output = await new Response(process.stdout).text();
+            process.kill();
+            
+            return JSON.parse(output);
+        } catch (error) {
+            console.error('Docker socket request failed:', error);
+            throw error;
+        }
+    }
 
-        const lines = output.split("\n").filter(Boolean);
-        const objs = lines.map((container) => {
-            return { name: container };
-        });
+    async getContainers() {
+        return this.request("/v1.41/containers/json?all=true");
+    }
 
-        // Enrich with health status
-        const enriched = await Promise.all(objs.map(async (container) => {
-            const inspectProcess = Bun.spawn(
-                ["docker", "inspect", container.name, "--format", "{{.State.Status}}:{{if .State.Health}}{{.State.Health.Status}}{{end}}"],
-                {stdout: "pipe", stderr: "pipe"}
-            );
+    async watch(callback: (containers: any[]) => void) {
+        try {
+            let containers = await this.getContainers();
+            callback(containers);
 
-            try {
-                const output = await new Response(inspectProcess.stdout).text();
-                inspectProcess.kill();
-                
-                const [status, healthOutput] = output.split(":");
-                const health = healthOutput.trim() || "";
-                return { ...container, status: status, health: health };
-            } catch (error) {
-                inspectProcess.kill();
-                return { ...container, status: undefined, health: undefined };
+            const process = Bun.spawn([
+                "curl", "-s", "--no-buffer", "--unix-socket", this.socket,
+                "http://localhost/v1.41/events"
+            ], { stdout: "pipe", stderr: "pipe" });
+
+            const reader = process.stdout.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const event = JSON.parse(line);
+                            if (event.Type === "container") {
+                                containers = await this.getContainers();
+                                callback(containers);
+                            }
+                        } catch (parseError) {
+                            console.error('Failed to parse event:', line, parseError);
+                        }
+                    }
+                }
             }
-        }));
-
-        return enriched;
-    } catch (error) {
-        console.error(error);
-        return [];
+            
+        } catch (error) {
+            console.error('Docker watch failed', error);
+            throw error;
+        }
     }
 }

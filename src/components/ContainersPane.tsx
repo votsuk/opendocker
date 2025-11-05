@@ -1,42 +1,63 @@
 import { useState, useEffect, useRef } from "react";
 import { useKeyboard } from "@opentui/react";
-import { colors } from "../utils/styling";
+import { colors, termColors } from "../utils/styling";
 import Pane from "./Pane";
 import { useContainerStore } from "../stores/containers";
 import { useApplicationStore } from "../stores/application";
 import type { ScrollBoxRenderable } from "@opentui/core";
-import { getDockerContainers } from "../lib/docker";
+import { Docker } from "../lib/docker";
+import { TextAttributes } from "@opentui/core";
 
 export default function ContainersPane() {
     const { activePane, setActivePane } = useApplicationStore((state) => state);
     const { containers, setContainers, activeContainer, setActiveContainer } = useContainerStore((state) => state);
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const active = activePane === "Containers";
+    const paneActive = activePane === "containers";
     const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
 
     useEffect(() => {
-        if (!active) return;
+        if (!paneActive) return;
+        
+        const docker = new Docker();
 
-        async function getContainers() {
-            const c = await getDockerContainers();
-            setContainers(c);
-            setActiveContainer(c[0]);
-        }
+        docker.watch((dockerContainers) => {
+            console.log(dockerContainers[0]);
+            const transformed = dockerContainers.map(container => ({
+                name: container.Names[0].replace("/", ""),
+                status: container.Status,
+                state: container.State,
+                health: container.Health,
+            }));
 
-        getContainers();
-    }, [active]);
+            setContainers(transformed);
+
+            // Get the CURRENT active container from store, not from stale closure
+            const currentActive = useContainerStore.getState().activeContainer;
+            
+            if (currentActive) {
+                const stillExists = transformed.find((c) => c.name === currentActive.name);
+                if (stillExists) {
+                    return;
+                }
+            }
+
+            if (transformed.length > 0) {
+                setActiveContainer(transformed[0]);
+            }
+        });
+    }, [paneActive]);
 
     useKeyboard((key) => {
-        if (!active) {
+        if (!paneActive) {
             return;
         }
 
         if (key.name === "left") {
-            setActivePane("Volumes");
+            setActivePane("volumes");
         }
 
         if (key.name === "right" || key.name === "tab") {
-            setActivePane("Images");
+            setActivePane("images");
         }
 
         if (key.name === 'j' || key.name === 'down') {
@@ -57,7 +78,7 @@ export default function ContainersPane() {
             title="Containers"
             flexDirection="column"
             width="100%"
-            active={active}
+            active={paneActive}
         >
             <scrollbox
                 ref={scrollBoxRef}
@@ -67,45 +88,49 @@ export default function ContainersPane() {
                 viewportOptions={{
                     flexGrow: 1
                 }}
-                marginTop={1}
             >
                 {containers.map((item, index) => {
-                    function getStatusColor() {
-                        if (activeContainer?.name === item.name) {
+                    function getStateColor() {
+                        if (paneActive && activeContainer?.name === item.name) {
                             return colors.backgroundPanel;
                         }
 
-                        if (item?.status === "running") {
-
-                            if (item.health && item.health !== "healthy") {
-                                return colors.warning;
+                        if (item?.state === "running") {
+                            if (item.status.includes("starting")) {
+                                return termColors.orange11;
                             }
-                            return colors.success;
+
+                            if (item.status.includes("unhealthy")) {
+                                return termColors.red11;
+                            }
+
+                            return termColors.green11;
                         }
 
-                        if (item?.status === "exited") {
-                            return colors.error;
+                        if (item?.state === "exited") {
+                            return termColors.red11;
                         }
 
-                        return colors.secondary;
+                        return termColors.blue11;
                     }
 
                     return (
                         <box
-                            backgroundColor={activeContainer?.name === item.name ? colors.primary : undefined}
+                            key={index}
+                            backgroundColor={paneActive && activeContainer?.name === item.name ? colors.primary : undefined}
                             flexDirection="row"
                             justifyContent="space-between"
+                            paddingLeft={1}
+                            paddingRight={1}
                         >
                             <text
-                                key={index}
                                 content={item.name}
-                                fg={activeContainer?.name === item.name ? colors.backgroundPanel : colors.textMuted}
-                                wrap={true}
+                                fg={paneActive && activeContainer?.name === item.name ? colors.backgroundPanel : colors.textMuted}
+                                attributes={paneActive && activeContainer?.name === item.name && TextAttributes.BOLD}
                             />
                             <text
-                                key={index}
-                                content={item.status}
-                                fg={getStatusColor()}
+                                content={item.state}
+                                fg={getStateColor()}
                             />
                         </box>
                     )
