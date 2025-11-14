@@ -8,6 +8,6 @@
 
 ```bash
 # Package managers
-npm i -g opendocker        # or bun/pnpm/yarn
+bun i -g opendocker        # or npm/pnpm/yarn
 ```
 ---
