@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { colors, termColors } from "../utils/styling";
-import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core";
+import { RGBA, TextAttributes, type ScrollBoxRenderable } from "@opentui/core";
 import Pane from "./Pane";
 import { useContainerStore } from "../stores/containers";
 import { useApplicationStore } from "../stores/application";
+import { Shimmer } from "./ui/Shimmer";
 
 type LogEntry = {
     text: string;
@@ -22,7 +23,6 @@ export default function LogsPane() {
             return;
         };
 
-        setLogs([]);
         const process = Bun.spawn([
             "docker",
             "logs",
@@ -47,8 +47,8 @@ export default function LogsPane() {
                     const text = decoder.decode(value, { stream: true });
                     // Split by newlines and filter out empty lines
                     const lines = text.split('\n').filter(line => line.trim().length > 0);
-                    
-                    if (lines.length > 0) {
+                     
+                     if (lines.length > 0) {
                         setLogs(prev => {
                             const newEntries = lines.map(line => ({
                                 text: line,
@@ -68,7 +68,7 @@ export default function LogsPane() {
             process.kill();
             cleanup();
         }
-    }, [activePane, activeContainer]);
+    }, [activePane, activeContainer?.name, activeContainer?.state])
 
     useEffect(() => {
         if (scrollBoxRef.current && logs.length > 0) {
@@ -81,13 +81,17 @@ export default function LogsPane() {
     }
 
     const output = useMemo(() => {
+        if (logs.length === 0 && activeContainer?.state === "created") {
+            return <Shimmer text="Container starting..." color={RGBA.fromHex(colors.text)} />
+        }
+
         if (logs.length === 0) {
             return <text fg={colors.textMuted}>No logs available</text>;
         }
 
-        return logs.map(log => (
+        return logs.map((log, index) => (
             <text
-                fg={log.type === 'stderr' ? termColors.red11 : colors.textMuted}
+                key={index}
             >
                 {log.text}
             </text>
@@ -104,7 +108,7 @@ export default function LogsPane() {
                 <box flexDirection="row" gap={2} height="auto">
                     <box flexDirection="column" gap={1}>
                         <text fg={termColors.purple11} attributes={TextAttributes.BOLD}>Container</text>
-                        <text>{activeContainer?.name}</text>
+                        <text>{activeContainer?.name || "None"}</text>
                     </box>
                     <box flexDirection="column">
                         <text fg={termColors.purple11} attributes={TextAttributes.BOLD}>Status</text>
