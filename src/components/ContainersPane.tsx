@@ -21,7 +21,6 @@ export default function ContainersPane() {
         const docker = new Docker();
 
         docker.watch((dockerContainers) => {
-            console.log(dockerContainers[0]);
             const transformed = dockerContainers.map(container => ({
                 name: container.Names[0].replace("/", ""),
                 status: container.Status,
@@ -31,12 +30,17 @@ export default function ContainersPane() {
 
             setContainers(transformed);
 
+            if (transformed.length === 0) {
+                setActiveContainer(undefined);
+            }
+
             // Get the CURRENT active container from store, not from stale closure
             const currentActive = useContainerStore.getState().activeContainer;
             
             if (currentActive) {
-                const stillExists = transformed.find((c) => c.name === currentActive.name);
-                if (stillExists) {
+                const updatedContainer = transformed.find((c) => c.name === currentActive.name);
+                if (updatedContainer) {
+                    setActiveContainer(updatedContainer);
                     return;
                 }
             }
@@ -56,7 +60,7 @@ export default function ContainersPane() {
             setActivePane("volumes");
         }
 
-        if (key.name === "right" || key.name === "tab") {
+        if (key.name === "right") {
             setActivePane("images");
         }
 
