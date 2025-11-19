@@ -10,12 +10,11 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
     const { activePane, setActivePane } = useApplicationStore((state) => state);
     const dimensions = useTerminalDimensions();
     const [pwd, setPwd] = useState<string>("");
-    const version = "v0.1.0";
+    const version = "v0.1.2";
 
     useEffect(() => {
         Bun.$`pwd`.quiet().then(result => setPwd(result.text()));
         setActivePane("containers");
-        
     }, [setActivePane]);
 
     return (
@@ -50,7 +49,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
                     </box>
                 </box>
                 <box flexDirection="row" gap={1}>
-                    <text fg={colors.textMuted}>tab</text>
+                    {/* <text fg={colors.textMuted}>tab</text> */}
                     <box backgroundColor={colors.accent} paddingLeft={1} paddingRight={1} {...SplitBorder} borderColor={colors.backgroundPanel}>
                         <text fg={colors.backgroundPanel} attributes={TextAttributes.BOLD}>{activePane}</text>
                     </box>
