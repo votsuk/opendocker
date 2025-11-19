@@ -4,7 +4,7 @@ import { padding, colors, termColors } from "../utils/styling";
 import { TextAttributes } from "@opentui/core";
 
 interface PaneProps extends BoxProps {
-    title: string;
+    title?: string;
     active?: boolean;
     children: React.ReactNode;
 }
@@ -26,7 +26,7 @@ export default function Pane({
                 backgroundColor={colors.backgroundPanel}
                 {...padding}
             >
-                <text marginBottom={1} attributes={TextAttributes.BOLD}>{title}</text>
+                {title && <text marginBottom={1} attributes={TextAttributes.BOLD}>{title}</text>}
                 {children}
             </box>
         </box>
