@@ -1,6 +1,6 @@
 <p align="center">A TUI Built for Docker Management and Log Monitoring.</p>
 
-![OpenDocker Terminal UI](src/assets/images/banner.jpg)
+![OpenDocker Terminal UI](public/assets/images/landing.png)
 
 ---
 
