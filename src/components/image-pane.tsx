@@ -1,32 +1,32 @@
- import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useKeyboard } from "@opentui/react";
-import Pane from "./Pane";
+import Pane from "./pane";
 import { colors } from "../utils/styling";
-import { useVolumeStore } from "../stores/volumes";
+import { useImageStore } from "../stores/images";
 import { useApplicationStore } from "../stores/application";
 import type { ScrollBoxRenderable } from "@opentui/core";
 
 export default function ImagesPane() {
     const { activePane, setActivePane } = useApplicationStore((state) => state);
-    const { volumes, setVolumes } = useVolumeStore();
+    const { images, setImages } = useImageStore();
     const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
 
     useEffect(() => {
         const process = Bun.spawn(
-            ["docker", "volume", "ls", "--format", "{{.Name}}"],
+            ["docker", "images", "--format", "{{.Repository}}"],
             {stdout: "pipe", stderr: "pipe"},
         );
 
         async function read() {
             try {
                 const reader = process.stdout.getReader();
-                
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
                     const decodedValues = new TextDecoder().decode(value);
                     const lines = decodedValues.split("\n").filter(Boolean);
-                    setVolumes(lines);
+                    setImages(lines);
                 }
             } catch (error) {
                 console.error(error);
@@ -39,45 +39,44 @@ export default function ImagesPane() {
     }, []);
 
     useKeyboard((key) => {
-        if (activePane !== "volumes") {
+        if (activePane !== "images") {
             return;
         }
 
         if (key.name === "left") {
-            setActivePane("images");
+            setActivePane("containers");
         }
 
         if (key.name === "right" || key.name === "tab") {
-            setActivePane("containers");
+            setActivePane("volumes");
         }
     });
 
     return (
         <Pane
-            title="Volumes"
-            active={activePane === "volumes"}
+            title="Images"
             width="100%"
+            active={activePane === "images"}
             flexDirection="column"
         >
             <scrollbox
                 ref={scrollBoxRef}
                 scrollY={true}
                 stickyScroll={true}
-                stickyStart="bottom"
-                viewportOptions={{
-                    flexGrow: 1
-                }}
+                stickyStart="top"
             >
-                {volumes.map((item, index) => {
-                    return <box>
-                        <text
-                            key={index}
-                            content={`[*] ${item}`}
-                            fg={colors.textMuted}
-                        />
-                    </box>
+                {images.map((item: string, index: number) => {
+                    return (
+                        <box key={index}> 
+                            <text
+                                key={index}
+                                content={item}
+                                fg={colors.textMuted}
+                            />
+                        </box>
+                     )
                 })}
-                {volumes.length < 1 && <text fg={colors.textMuted}>No Volumes</text>}
+                {images.length < 1 && <text fg={colors.textMuted}>No Images</text>}
             </scrollbox>
         </Pane>
     )

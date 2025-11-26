@@ -1,15 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "0.1.2",
+  "version": "0.1.11",
   "name": "opendocker",
   "type": "module",
-  "private": true,
+  "private": false,
   "bin": {
-    "opendocker": "./src/main.tsx"
+    "opendocker": "./bin/opendocker"
   },
-  "file": ["src/", "package.json", "README.md"],
+  "files": ["bin/", "package.json", "README.md"],
   "scripts": {
     "build": "bun build ./src/main.tsx --outdir ./dist --target bun",
+    "binary": "bun build ./src/main.tsx --compile --outfile ./bin/opendocker",
     "start": "bun run dist/main.js",
     "dev": "bun --watch run src/main.tsx"
   },
@@ -20,8 +21,11 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@opentui/core": "^0.1.46",
-    "@opentui/react": "^0.1.46",
+    "@opentui/core": "^0.1.50",
+    "@opentui/react": "^0.1.50",
+    "clipboardy": "4.0.0",
+    "opencode-ai": "^1.0.110",
+    "strip-ansi": "^7.1.2",
     "zustand": "^5.0.8"
   }
 }

@@ -1,6 +1,6 @@
-import { SplitBorder } from "./Border";
+import { SplitBorder } from "./border";
 import type { BoxProps } from "@opentui/react";
-import { padding, colors, termColors } from "../utils/styling";
+import { padding, colors } from "../utils/styling";
 import { TextAttributes } from "@opentui/core";
 
 interface PaneProps extends BoxProps {
@@ -18,8 +18,8 @@ export default function Pane({
     return (
         <box
             {...SplitBorder}
+            borderColor={active ? colors.secondary : colors.backgroundPanel}
             {...props}
-            borderColor={active ? termColors.purple11 : colors.backgroundPanel}
         >
             <box
                 flexGrow={1}

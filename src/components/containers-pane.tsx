@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useKeyboard } from "@opentui/react";
-import { colors, termColors } from "../utils/styling";
-import Pane from "./Pane";
+import { colors } from "../utils/styling";
+import Pane from "./pane";
 import { useContainerStore } from "../stores/containers";
 import { useApplicationStore } from "../stores/application";
 import type { ScrollBoxRenderable } from "@opentui/core";
@@ -9,7 +9,7 @@ import { Docker } from "../lib/docker";
 import { TextAttributes } from "@opentui/core";
 
 export default function ContainersPane() {
-    const { activePane, setActivePane } = useApplicationStore((state) => state);
+    const { activePane, setSystemError } = useApplicationStore((state) => state);
     const { containers, setContainers, activeContainer, setActiveContainer } = useContainerStore((state) => state);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const paneActive = activePane === "containers";
@@ -17,60 +17,55 @@ export default function ContainersPane() {
 
     useEffect(() => {
         if (!paneActive) return;
-        
-        const docker = new Docker();
+       
+            const docker = new Docker();
 
-        docker.watch((dockerContainers) => {
-            const transformed = dockerContainers.map(container => ({
-                name: container.Names[0].replace("/", ""),
-                status: container.Status,
-                state: container.State,
-                health: container.Health,
-            }));
+            docker.watch(
+                (dockerContainers) => {
+                    const transformed = dockerContainers.map(container => ({
+                        name: container.Names[0].replace("/", ""),
+                        status: container.Status,
+                        state: container.State,
+                        health: container.Health,
+                    }));
 
-            setContainers(transformed);
+                    setContainers(transformed);
 
-            if (transformed.length === 0) {
-                setActiveContainer(undefined);
-            }
+                    if (transformed.length === 0) {
+                        setActiveContainer(undefined);
+                    }
 
-            // Get the CURRENT active container from store, not from stale closure
-            const currentActive = useContainerStore.getState().activeContainer;
-            
-            if (currentActive) {
-                const updatedContainer = transformed.find((c) => c.name === currentActive.name);
-                if (updatedContainer) {
-                    setActiveContainer(updatedContainer);
-                    return;
-                }
-            }
+                    // Get the CURRENT active container from store, not from stale closure
+                    const currentActive = useContainerStore.getState().activeContainer;
+                    
+                    if (currentActive) {
+                        const updatedContainer = transformed.find((c) => c.name === currentActive.name);
+                        if (updatedContainer) {
+                            setActiveContainer(updatedContainer);
+                            return;
+                        }
+                    }
 
-            if (transformed.length > 0) {
-                setActiveContainer(transformed[0]);
-            }
-        });
+                    if (transformed.length > 0) {
+                        setActiveContainer(transformed[0]);
+                    }
+            },
+            (error) => {
+                setSystemError(error);
+            },
+        );
     }, [paneActive]);
 
     useKeyboard((key) => {
-        if (!paneActive) {
-            return;
-        }
+        if (!paneActive) return;
 
-        if (key.name === "left") {
-            setActivePane("volumes");
-        }
-
-        if (key.name === "right") {
-            setActivePane("images");
-        }
-
-        if (key.name === 'j' || key.name === 'down') {
+        if (key.name === "j" || key.name === "down") {
             const index = Math.min(selectedIndex + 1, containers.length - 1);
             setSelectedIndex(index);
             setActiveContainer(containers[index]);
         }
 
-         if (key.name === 'k' || key.name === 'up') {
+         if (key.name === "k" || key.name === "up") {
             const index = Math.max(selectedIndex - 1, 0);
             setActiveContainer(containers[index]);
             setSelectedIndex(index);
@@ -101,21 +96,21 @@ export default function ContainersPane() {
 
                         if (item?.state === "running") {
                             if (item.status.includes("starting")) {
-                                return termColors.orange11;
+                                return colors.warning;
                             }
 
                             if (item.status.includes("unhealthy")) {
-                                return termColors.red11;
+                                return colors.error;
                             }
 
-                            return termColors.green11;
+                            return colors.success;
                         }
 
                         if (item?.state === "exited") {
-                            return termColors.red11;
+                            return colors.error;
                         }
 
-                        return termColors.blue11;
+                        return colors.secondary;
                     }
 
                     return (
@@ -129,7 +124,7 @@ export default function ContainersPane() {
                         >
                             <text
                                 content={item.name}
-                                fg={paneActive && activeContainer?.name === item.name ? colors.backgroundPanel : colors.textMuted}
+                                fg={paneActive && activeContainer?.name === item.name ? colors.backgroundPanel : colors.text}
                                 attributes={paneActive && activeContainer?.name === item.name && TextAttributes.BOLD}
                             />
                             <text
