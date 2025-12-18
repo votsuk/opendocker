@@ -1,14 +1,15 @@
-import { createContext, useContext, useState, type ReactNode } from "react"
-import { useTerminalDimensions } from "@opentui/react"
-import { SplitBorder } from "../Border"
+import { createContext, useContext, type ParentProps, Show } from "solid-js"
+import { createStore } from "solid-js/store"
+import { useTerminalDimensions } from "@opentui/solid"
+import { SplitBorder } from "@/components/border"
 import { TextAttributes } from "@opentui/core"
-import { colors } from "../../utils/styling"
+import { colors } from "../util/colors"
 
-export interface ToastOptions {
-    variant: "info" | "success" | "warning" | "error"
-    message: string
-    title?: string
-    duration?: number
+interface ToastOptions {
+    title?: string,
+    message: string,
+    variant: "info" |"success" | "warning" | "error",
+    duration?: number,
 }
 
 export function Toast() {
@@ -16,53 +17,53 @@ export function Toast() {
     const dimensions = useTerminalDimensions()
 
     return (
-        <>
-            {toast.currentToast && (
+        <Show when={toast.currentToast}>
+            {(current) => (
                 <box
                     position="absolute"
                     justifyContent="center"
                     alignItems="flex-start"
                     top={2}
                     right={2}
-                    maxWidth={Math.min(60, dimensions.width - 6)}
+                    maxWidth={Math.min(60, dimensions().width - 6)}
                     paddingLeft={2}
                     paddingRight={2}
                     paddingTop={1}
                     paddingBottom={1}
-                    backgroundColor={colors.backgroundElement}
-                    borderColor={colors[toast.currentToast.variant]}
+                    backgroundColor={colors.backgroundPanel}
+                    borderColor={colors.secondary}
                     border={["left", "right"]}
                     customBorderChars={SplitBorder.customBorderChars}
                 >
-                    {toast.currentToast.title && (
+                    <Show when={current().title}>
                         <text attributes={TextAttributes.BOLD} marginBottom={1} fg={colors.text}>
-                            {toast.currentToast.title}
+                            {current().title}
                         </text>
-                    )}
-                    <text fg={colors.text}>{toast.currentToast.message}</text>
+                    </Show>
+                    <text fg={colors.text} wrapMode="word" width="100%">
+                        {current().message}
+                    </text>
                 </box>
             )}
-        </>
+        </Show>
     )
 }
 
-function useToastState() {
-    return useState<ToastOptions | null>(null)
-}
-
 function init() {
-    const [currentToast, setCurrentToast] = useToastState()
+    const [store, setStore] = createStore({
+        currentToast: null as ToastOptions | null,
+    })
 
     let timeoutHandle: NodeJS.Timeout | null = null
 
     const toast = {
         show(options: ToastOptions) {
-            const { duration = 3000, ...toastOptions } = options
-            setCurrentToast(toastOptions)
+            const { duration, ...currentToast } = options
+            setStore("currentToast", currentToast)
             if (timeoutHandle) clearTimeout(timeoutHandle)
             timeoutHandle = setTimeout(() => {
-                setCurrentToast(null)
-            }, duration).unref()
+                setStore("currentToast", null)
+            }, duration || 5000).unref()
         },
         error: (err: any) => {
             if (err instanceof Error)
@@ -76,7 +77,7 @@ function init() {
             })
         },
         get currentToast(): ToastOptions | null {
-            return currentToast
+            return store.currentToast
         },
     }
     return toast
@@ -84,11 +85,11 @@ function init() {
 
 export type ToastContext = ReturnType<typeof init>
 
-const ctx = createContext<ToastContext>(undefined!)
+const ctx = createContext<ToastContext>()
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider(props: ParentProps) {
     const value = init()
-    return <ctx.Provider value={value}>{children}</ctx.Provider>
+    return <ctx.Provider value={value}>{props.children}</ctx.Provider>
 }
 
 export function useToast() {

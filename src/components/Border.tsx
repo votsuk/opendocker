@@ -1,4 +1,4 @@
-import { colors } from "../utils/styling";
+import { colors } from "@/util/colors"
 
 export const SplitBorder = {
   border: ["left" as const],
@@ -17,3 +17,4 @@ export const SplitBorder = {
     rightT: "",
   },
 }
+
