@@ -1,33 +1,41 @@
-import { createEffect, createSignal, onMount, For, Switch, Match } from 'solid-js';
-import { TextAttributes, ScrollBoxRenderable } from '@opentui/core';
+import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
-import { colors } from '@/util/colors';
+import { createEffect, createSignal, For, Match, onMount, Switch } from 'solid-js';
+import application, { type Container } from '@/stores/application';
 import { Pane } from '@/ui/pane';
-import { Docker } from '@/lib/docker';
-import application, { type ContainerBareMin } from '@/stores/application';
+import { colors, getColorForContainerState } from '@/util/colors';
+import { Loader } from '@/ui/loader';
 
 export default function ContainersPane() {
     const { store, setStore } = application;
-    const [containers, setContainers] = createSignal<Array<ContainerBareMin>>([]);
     const [selectedId, setSelectedId] = createSignal<string | undefined>();
-    let scroll: ScrollBoxRenderable
+    const [loaded, setLoaded] = createSignal<boolean>(false);
+    let scroll: ScrollBoxRenderable;
 
-    async function createDocker() {
-        console.info('Get containers');
-        const d = await Docker.getInstance();
-        const fetchedContainers = await d.streamContainers();
-        setContainers(fetchedContainers);
+    function validateActiveContainer(containers: Array<Container>, activeId: string | undefined) {
+        if (!activeId) return containers[0]?.id; 
+        const exists = containers.find((c: Container) => c.id === activeId);
+        return exists? activeId : containers[0]?.id;
+    }
 
-        if (!store.activeContainer && fetchedContainers.length > 0) {
-            setStore('activeContainer', fetchedContainers[0].id);
+    async function containerPulse() {
+        const d = store.docker;
+        const fetchedContainers = await d?.streamContainers() || [];
+        setStore('containers', fetchedContainers);
+
+        const validActiveId = validateActiveContainer(fetchedContainers, store.activeContainer);
+        if (validActiveId !== store.activeContainer) {
+            setStore('activeContainer', validActiveId);
         }
 
-        setStore('docker', d);
+        setLoaded(true);
     }
 
     onMount(() => {
+        containerPulse();
+
         setInterval(() => {
-            createDocker();;
+            containerPulse();
         }, 1000);
     });
 
@@ -36,27 +44,39 @@ export default function ContainersPane() {
             return -1;
         }
 
-        return containers().findIndex(c => c.id === selectedId());
+        return store.containers.findIndex(c => c.id === selectedId());
     }
 
-    useKeyboard((key) => {
+    useKeyboard(key => {
+        if (store.filtering) return;
+
         if (key.name === 'k') {
-           const index = getSelectedIndex();
-            if (index === 0 || index === -1) {
+            const index = getSelectedIndex();
+            if (index === -1 && store.containers.length > 0) {
+                setStore('activeContainer', store.containers[store.containers.length - 1].id);
+            };
+
+            if (index === 0) {
                 return;
             }
 
-            const newSelected = containers()[index - 1];
+            const newSelected = store.containers[index - 1];
             setStore('activeContainer', newSelected.id);
         }
-    
+
         if (key.name === 'j') {
             const index = getSelectedIndex();
-            if (index === -1 || index >= containers().length - 1) {
+
+            if (index === -1 && store.containers.length > 0) {
+                setStore('activeContainer', store.containers[0].id);
                 return;
             }
 
-            const newSelected = containers()[index + 1];
+            if (index >= store.containers.length - 1) {
+                return;
+            }
+
+            const newSelected = store.containers[index + 1];
             setStore('activeContainer', newSelected.id);
         }
     });
@@ -66,79 +86,83 @@ export default function ContainersPane() {
     });
 
     createEffect(() => {
-        if (!store.activeContainer && containers().length > 0) {
-            setStore('activeContainer', containers()[0].id);
+        if (!store.activeContainer && store.containers.length > 0) {
+            setStore('activeContainer', store.containers[0].id);
         }
     });
 
-    function getColorForContainerState(status: string, state: string, isActive: boolean) {
-        if (isActive) {
-            return colors.backgroundPanel;
-        }
-
-        switch (state) {
-            case "running":
-                if (status.includes("unhealthy")) {
-                    return colors.warning;
-                }
-                return colors.success;
-            case "exited":
-                return colors.error;
-            case "created":
-                return colors.warning;
-            default:
-                return colors.textMuted;
-        }
-    }
-
     return (
-        <Pane title="Containers" width="100%" height="100%" borderColor={colors.secondary}>
+        <Pane
+            title="Containers"
+            width="100%"
+            height="100%"
+            borderColor={() => store.activePane === 'containers' ? colors.secondary : colors.backgroundPanel}
+        >
             <Switch>
-                <Match when={containers().length > 0}>
+                <Match when={store.containers.length > 0}>
                     <scrollbox
                         ref={(r: ScrollBoxRenderable) => (scroll = r)}
                         scrollY={true}
                         stickyScroll={true}
                         stickyStart="bottom"
-                        viewportOptions={{
-                            flexGrow: 1
-                        }}
+                        height="100%"
+                        width="100%"
                     >
-                        <For each={containers()}>
-                            {(container: ContainerBareMin) => {
+                        <For each={store.containers}>
+                            {(container: Container) => {
                                 const isActive = () => store.activeContainer === container.id;
                                 return (
                                     <box
                                         backgroundColor={isActive() ? colors.secondary : undefined}
                                         flexDirection="row"
                                         justifyContent="space-between"
+                                        width="100%"
                                         paddingLeft={1}
                                         paddingRight={1}
                                     >
                                         <text
-                                            fg={isActive() ? colors.backgroundPanel : colors.textMuted}
-                                            attributes={isActive() ? TextAttributes.BOLD : undefined}
+                                            fg={
+                                                isActive()
+                                                    ? colors.backgroundPanel
+                                                    : colors.textMuted
+                                            }
+                                            attributes={
+                                                isActive() ? TextAttributes.BOLD : undefined
+                                            }
                                         >
                                             {container.name}
                                         </text>
                                         <text
-                                            fg={getColorForContainerState(container.status, container.state, isActive())}
+                                            fg={getColorForContainerState(
+                                                isActive(),
+                                                container.status,
+                                                container.state
+                                            )}
                                         >
                                             {container.state}
                                         </text>
                                     </box>
-                            )}}
+                                );
+                            }}
                         </For>
                     </scrollbox>
                 </Match>
-                <Match when={containers().length === 0}>
-                    <box paddingLeft={1} paddingRight={1}>
-                        <text fg={colors.textMuted}>
-                            No Containers
-                        </text>
+                <Match when={store.containers.length === 0 && loaded()}>
+                    <box flexDirection="column" height="100%" width="100%">
+                        <box paddingLeft={1} paddingRight={1} paddingBottom={1}>
+                            <text fg={colors.warning}>No containers running</text>
+                            <text fg={colors.textMuted}>
+                                Try: docker run hello-world to get started
+                            </text>
+                        </box>
+                    </box>
+                </Match>
+                <Match when={store.containers.length === 0 && !loaded()}>
+                    <box height="100%" width="100%" paddingLeft={1} paddingRight={1}>
+                        <Loader />
                     </box>
                 </Match>
             </Switch>
         </Pane>
-    )
+    );
 }

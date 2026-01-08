@@ -1,7 +1,7 @@
-import { createStore } from "solid-js/store";
-import { Docker } from '@/lib/docker';
+import { createStore } from 'solid-js/store';
+import type { Docker } from '@/lib/docker';
 
-export interface ContainerBareMin {
+export interface Container {
     id: string;
     name: string;
     state: string;
@@ -9,13 +9,21 @@ export interface ContainerBareMin {
 }
 
 interface ApplicationStore {
+    containers: Array<Container>;
     activeContainer: string | undefined;
     docker: Docker | undefined;
+    activePane: string;
+    containerFilters: Record<string, string>;
+    filtering: boolean;
 }
 
 const [store, setStore] = createStore<ApplicationStore>({
+    containers: [],
     activeContainer: undefined,
     docker: undefined,
+    activePane: 'containers',
+    containerFilters: {},
+    filtering: false,
 });
 
 export default { store, setStore };

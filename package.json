@@ -1,24 +1,29 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "name": "opendocker",
   "type": "module",
-  "private": true,
+  "private": false,
+  "bin": {
+    "opendocker": "./bin/opendocker"
+  },
+  "files": ["bin/", "package.json", "README.md"],
   "scripts": {
-    "watch": "bun watch.mjs",
-    "dev": "bun run --conditions=browser ./src/index.tsx"
+    "dev": "bun run --conditions=browser ./src/index.tsx",
+    "build": "bun run scripts/build.ts",
+    "build:single": "bun run scripts/build.ts --single",
+    "binary": "bun run scripts/build.ts --single"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@tsconfig/bun": "latest"
+    "@tsconfig/bun": "latest",
+    "@types/bun": "latest"
   },
   "dependencies": {
-    "@opentui/core": "^0.1.61",
-    "@opentui/solid": "^0.1.61",
+    "@opentui/core": "^0.1.69",
+    "@opentui/solid": "^0.1.69",
     "@types/dockerode": "^3.3.47",
     "clipboardy": "^5.0.2",
     "dockerode": "^4.0.9",
-    "opencode-ai": "^1.0.127",
     "solid-js": "^1.9.10"
   }
 }

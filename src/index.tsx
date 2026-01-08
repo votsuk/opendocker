@@ -1,5 +1,5 @@
-import { render } from '@opentui/solid';
 import { ConsolePosition } from '@opentui/core';
+import { render } from '@opentui/solid';
 import { tui } from './app';
 
 function copyToClipboard(text: string) {
@@ -17,7 +17,7 @@ render(tui, {
         position: ConsolePosition.BOTTOM,
         maxStoredLogs: 1000,
         sizePercent: 70,
-        onCopySelection: (text) => copyToClipboard(text),
+        onCopySelection: text => copyToClipboard(text),
         backgroundColor: '#000000',
     },
 });

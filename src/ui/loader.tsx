@@ -1,25 +1,29 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
-import { colors } from "@/util/colors";
+import { createSignal, onCleanup, onMount } from 'solid-js';
+import { colors } from '@/util/colors';
 
-export function Loader() {
+interface LoaderProps {
+    color?: string;
+}
+
+export function Loader(props: LoaderProps) {
     const FRAMES = [
-        "▱▱▱▱▱▱▱",
-        "▱▱▱▱▱▱▱",
-        "▱▱▱▱▱▱▱",
-        "▱▱▱▱▱▱▱",
-        "▰▱▱▱▱▱▱",
-        "▰▰▱▱▱▱▱",
-        "▰▰▰▱▱▱▱",
-        "▱▰▰▰▱▱▱",
-        "▱▱▰▰▰▱▱",
-        "▱▱▱▰▰▰▱",
-        "▱▱▱▱▰▰▰",
-        "▱▱▱▱▱▰▰",
-        "▱▱▱▱▱▱▰",
-        "▱▱▱▱▱▱▱",
-        "▱▱▱▱▱▱▱",
-        "▱▱▱▱▱▱▱",
-        "▱▱▱▱▱▱▱",
+        '▱▱▱▱▱▱▱',
+        '▱▱▱▱▱▱▱',
+        '▱▱▱▱▱▱▱',
+        '▱▱▱▱▱▱▱',
+        '▰▱▱▱▱▱▱',
+        '▰▰▱▱▱▱▱',
+        '▰▰▰▱▱▱▱',
+        '▱▰▰▰▱▱▱',
+        '▱▱▰▰▰▱▱',
+        '▱▱▱▰▰▰▱',
+        '▱▱▱▱▰▰▰',
+        '▱▱▱▱▱▰▰',
+        '▱▱▱▱▱▱▰',
+        '▱▱▱▱▱▱▱',
+        '▱▱▱▱▱▱▱',
+        '▱▱▱▱▱▱▱',
+        '▱▱▱▱▱▱▱',
     ];
     const [frame, setFrame] = createSignal(0);
 
@@ -33,5 +37,5 @@ export function Loader() {
         });
     });
 
-    return <text fg={colors.diffAdded}>{FRAMES[frame()]}</text>
+    return <text fg={props.color || colors.diffAdded}>{FRAMES[frame()]}</text>;
 }

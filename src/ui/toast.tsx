@@ -1,24 +1,24 @@
-import { createContext, useContext, type ParentProps, Show } from "solid-js"
-import { createStore } from "solid-js/store"
-import { useTerminalDimensions } from "@opentui/solid"
-import { SplitBorder } from "@/components/border"
-import { TextAttributes } from "@opentui/core"
-import { colors } from "../util/colors"
+import { TextAttributes } from '@opentui/core';
+import { useTerminalDimensions } from '@opentui/solid';
+import { createContext, type ParentProps, Show, useContext } from 'solid-js';
+import { createStore } from 'solid-js/store';
+import { SplitBorder } from '@/components/border';
+import { colors } from '../util/colors';
 
 interface ToastOptions {
-    title?: string,
-    message: string,
-    variant: "info" |"success" | "warning" | "error",
-    duration?: number,
+    title?: string;
+    message: string;
+    variant: 'info' | 'success' | 'warning' | 'error';
+    duration?: number;
 }
 
 export function Toast() {
-    const toast = useToast()
-    const dimensions = useTerminalDimensions()
+    const toast = useToast();
+    const dimensions = useTerminalDimensions();
 
     return (
         <Show when={toast.currentToast}>
-            {(current) => (
+            {current => (
                 <box
                     position="absolute"
                     justifyContent="center"
@@ -32,7 +32,7 @@ export function Toast() {
                     paddingBottom={1}
                     backgroundColor={colors.backgroundPanel}
                     borderColor={colors.secondary}
-                    border={["left", "right"]}
+                    border={['left', 'right']}
                     customBorderChars={SplitBorder.customBorderChars}
                 >
                     <Show when={current().title}>
@@ -46,56 +46,56 @@ export function Toast() {
                 </box>
             )}
         </Show>
-    )
+    );
 }
 
 function init() {
     const [store, setStore] = createStore({
         currentToast: null as ToastOptions | null,
-    })
+    });
 
-    let timeoutHandle: NodeJS.Timeout | null = null
+    let timeoutHandle: NodeJS.Timeout | null = null;
 
     const toast = {
         show(options: ToastOptions) {
-            const { duration, ...currentToast } = options
-            setStore("currentToast", currentToast)
-            if (timeoutHandle) clearTimeout(timeoutHandle)
+            const { duration, ...currentToast } = options;
+            setStore('currentToast', currentToast);
+            if (timeoutHandle) clearTimeout(timeoutHandle);
             timeoutHandle = setTimeout(() => {
-                setStore("currentToast", null)
-            }, duration || 5000).unref()
+                setStore('currentToast', null);
+            }, duration || 5000).unref();
         },
         error: (err: any) => {
             if (err instanceof Error)
                 return toast.show({
-                    variant: "error",
+                    variant: 'error',
                     message: err.message,
-                })
+                });
             toast.show({
-                variant: "error",
-                message: "An unknown error has occurred",
-            })
+                variant: 'error',
+                message: 'An unknown error has occurred',
+            });
         },
         get currentToast(): ToastOptions | null {
-            return store.currentToast
+            return store.currentToast;
         },
-    }
-    return toast
+    };
+    return toast;
 }
 
-export type ToastContext = ReturnType<typeof init>
+export type ToastContext = ReturnType<typeof init>;
 
-const ctx = createContext<ToastContext>()
+const ctx = createContext<ToastContext>();
 
 export function ToastProvider(props: ParentProps) {
-    const value = init()
-    return <ctx.Provider value={value}>{props.children}</ctx.Provider>
+    const value = init();
+    return <ctx.Provider value={value}>{props.children}</ctx.Provider>;
 }
 
 export function useToast() {
-    const value = useContext(ctx)
+    const value = useContext(ctx);
     if (!value) {
-        throw new Error("useToast must be used within a ToastProvider")
+        throw new Error('useToast must be used within a ToastProvider');
     }
-    return value
+    return value;
 }

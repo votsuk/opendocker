@@ -3,4 +3,4 @@ export const padding = {
     paddingBottom: 1,
     paddingLeft: 1,
     paddingRight: 1,
-}
+};
