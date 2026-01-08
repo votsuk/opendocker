@@ -1,81 +1,105 @@
+import http from 'http';
+import type { Container } from '@/stores/application';
+
+const DEFAULT_SOCKET = '/var/run/docker.sock';
+
+interface DockerContainer {
+    Id: string;
+    Names: string[];
+    State: string;
+    Status: string;
+}
 
 export class Docker {
-    private socket: string | null = null;
+    private static instance: Docker | null = null;
+    private socketPath: string;
 
-    private async getSocket() {
-        if (this.socket) return this.socket;
+    private constructor(socket: string) {
+        this.socketPath = socket;
+    }
 
+    public static getInstance(): Docker {
+        if (!Docker.instance) {
+            Docker.instance = new Docker(DEFAULT_SOCKET);
+            Docker.detectAndUpdateSocket();
+        }
+        return Docker.instance;
+    }
+
+    private static async detectAndUpdateSocket() {
         try {
-            const res = await Bun.$`docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|unix://||'`.text();
-            this.socket = res.trim() || "/var/run/docker.sock";
+            const detectedSocket = await Docker.getSocket();
+
+            if (Docker.instance && detectedSocket !== Docker.instance.socketPath) {
+                console.log(`Updating socket from ${Docker.instance.socketPath} to ${detectedSocket}`);
+                Docker.instance.socketPath = detectedSocket;
+            }
+        } catch (error) {
+            console.error('Failed to detect docker socket:', error);
+        }
+    }
+
+    public static async getSocket(): Promise<string> {
+        try {
+            const res =
+                await Bun.$`docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|unix://||'`.text();
+            return res.trim() || '/var/run/docker.sock';
         } catch (error) {
             console.error('Failed to get docker socket:', error);
-            this.socket = "/var/run/docker.sock";
-        }
-        
-        return this.socket;
-    }
-    
-    private async request(path: string) {
-        try {
-            const process = Bun.spawn([
-                "curl", "-s", "--unix-socket", await this.getSocket(), 
-                `http://localhost${path}`
-            ], { stdout: "pipe", stderr: "pipe" });
-
-            const output = await new Response(process.stdout).text();
-            process.kill();
-            
-            return JSON.parse(output);
-        } catch (error) {
-            console.error('Docker socket request failed:', error);
+            return '/var/run/docker.sock';
         }
     }
 
-    async getContainers() {
-        return this.request("/v1.41/containers/json?all=true");
-    }
+    private request(path: string, method: string = 'GET'): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const options = {
+                socketPath: this.socketPath,
+                path: path,
+                method: method,
+            };
 
-    async watch(callback: (containers: any[]) => void, onError?: (error: Error) => void) {
-        try {
-            let containers = await this.getContainers();
-            callback(containers);
-
-            const process = Bun.spawn([
-                "curl", "-s", "--no-buffer", "--unix-socket", await this.getSocket(),
-                "http://localhost/v1.41/events"
-            ], { stdout: "pipe", stderr: "pipe" });
-
-            const reader = process.stdout.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || "";
-
-                for (const line of lines) {
-                    if (line.trim()) {
-                        try {
-                            const event = JSON.parse(line);
-                            if (event.Type === "container") {
-                                containers = await this.getContainers();
-                                callback(containers);
-                                onError?.(undefined);
-                            }
-                        } catch (parseError) {
-                            console.error('Failed to parse event:', line, parseError);
-                        }
+            const req = http.request(options, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch (err) {
+                        reject(new Error(`Failed to parse response: ${err}`));
                     }
-                }
-            }
-            
-        } catch (error) {
-            onError?.(new Error("Docker socket request failed"));
-        }
+                });
+            });
+
+            req.on('error', reject);
+            req.end();
+        });
+    }
+
+    public async streamContainers(): Promise<Array<Container>> {
+        const containers: DockerContainer[] = await this.request('/containers/json?all=1');
+
+        return containers.map((container: DockerContainer) => {
+            return {
+                id: container.Id,
+                name: container.Names[0].replace('/', ''),
+                state: container.State,
+                status: container.Status,
+            };
+        });
+    }
+
+    public async getContainer(id: string): Promise<string> {
+        const data = await this.request(`/containers/${id}/json`);
+        return data.Name;
+    }
+
+    public getLogsStream(containerId: string): http.ClientRequest {
+        const options = {
+            socketPath: this.socketPath,
+            path: `/containers/${containerId}/logs?follow=1&stdout=1&stderr=1&tail=100`,
+            method: 'GET',
+        };
+
+        return http.request(options);
     }
 }
