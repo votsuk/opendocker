@@ -18,7 +18,7 @@ export const colors = {
     blue: '#66d9ef',
     purple: '#ae81ff',
     pink: '#f92672',
-    diffAdded: '4fd6be',
+    diffAdded: '#4fd6be',
 };
 
 export function getColorForContainerState(isActive: boolean, status?: string, state?: string) {

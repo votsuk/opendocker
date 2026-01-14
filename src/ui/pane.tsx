@@ -17,7 +17,7 @@ export function Pane(props: PaneProps) {
         if (!local.borderColor) return colors.backgroundPanel;
         if (typeof local.borderColor === 'function') return local.borderColor();
         return local.borderColor;
-    };
+    }
 
     return (
         <box

@@ -13,7 +13,7 @@ interface ApplicationStore {
     activeContainer: string | undefined;
     docker: Docker | undefined;
     activePane: string;
-    containerFilters: Record<string, string>;
+    filters: Record<string, string>;
     filtering: boolean;
 }
 
@@ -22,7 +22,7 @@ const [store, setStore] = createStore<ApplicationStore>({
     activeContainer: undefined,
     docker: undefined,
     activePane: 'containers',
-    containerFilters: {},
+    filters: {},
     filtering: false,
 });
 

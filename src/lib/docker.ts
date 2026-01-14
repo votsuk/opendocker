@@ -78,14 +78,18 @@ export class Docker {
     public async streamContainers(): Promise<Array<Container>> {
         const containers: DockerContainer[] = await this.request('/containers/json?all=1');
 
-        return containers.map((container: DockerContainer) => {
-            return {
+        return containers
+            .map((container: DockerContainer) => ({
                 id: container.Id,
                 name: container.Names[0].replace('/', ''),
                 state: container.State,
                 status: container.Status,
-            };
-        });
+            }))
+            .sort((a, b) => {
+                if (a.state === 'running' && b.state !== 'running') return -1;
+                if (b.state === 'running' && a.state !== 'running') return 1;
+                return a.name.localeCompare(b.name);
+            })
     }
 
     public async getContainer(id: string): Promise<string> {

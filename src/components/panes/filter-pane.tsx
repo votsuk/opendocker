@@ -31,7 +31,7 @@ export default function FilterPane() {
 
         setStore('activePane', 'containers');
         if (store.activeContainer) {
-            setStore('containerFilters', store.activeContainer, value());
+            setStore('filters', store.activeContainer, value());
         }
 
         return;
@@ -45,14 +45,14 @@ export default function FilterPane() {
         setStore('activePane', 'containers');
         input.setText('');
         if (store.activeContainer) {
-            setStore('containerFilters', store.activeContainer, '');
+            setStore('filters', store.activeContainer, '');
         }
         return;
     }
 
     createEffect(() => {
         if (store.activeContainer) {
-            const filterValue = store.containerFilters[store.activeContainer] || '' ;
+            const filterValue = store.filters[store.activeContainer] || '' ;
             setValue(filterValue);
 
             if (input) {

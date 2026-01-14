@@ -10,13 +10,13 @@ import { SyntaxStyle } from '@opentui/core';
 
 export default function LogsPane() {
     const { store } = application;
-    const [selectedContainer, setSelectedContainer] = createSignal<Container>();
+    const [selected, setSelected] = createSignal<Container>();
     const [logs, setLogs] = createSignal<string>('');
     const [tempLogs, setTempLogs] = createSignal<string>('');
     const [paused, setPaused] = createSignal<boolean>(false);
     const [scroll, setScroll] = createSignal<ScrollBoxRenderable>();
     const logSyntaxStyle = SyntaxStyle.create();
-    const [viewportWidth, setViewportWidth] = createSignal<number>(0);
+    const [width, setWidth] = createSignal<number>(0);
 
     useKeyboard(key => {
         if (key.name === 'p') {
@@ -39,12 +39,12 @@ export default function LogsPane() {
         logs();
         const scrollBox = scroll();
         if (scrollBox) {
-            setViewportWidth(scrollBox.viewport.width);
+            setWidth(scrollBox.viewport.width);
         }
     });
 
     createEffect(() => {
-        setSelectedContainer(
+        setSelected(
             store.containers.find((c: Container) => c.id === store.activeContainer)
         );
     });
@@ -55,7 +55,7 @@ export default function LogsPane() {
             return;
         }
 
-        const filter = store.containerFilters[store.activeContainer] || '';
+        const filter = store.filters[store.activeContainer] || '';
         const baseCommand = `docker logs --follow --tail 100 ${store.activeContainer}`;
         const shellCommand = filter
             ? `${baseCommand} 2>&1 | grep --line-buffered "${filter}"`
@@ -116,7 +116,7 @@ export default function LogsPane() {
                             <text fg={colors.textMuted} attributes={TextAttributes.BOLD}>
                                 Container
                             </text>
-                            <text>{selectedContainer()?.name}</text>
+                            <text>{selected()?.name}</text>
                         </box>
                         <box>
                             <text fg={colors.textMuted} attributes={TextAttributes.BOLD}>
@@ -125,11 +125,11 @@ export default function LogsPane() {
                             <text
                                 fg={getColorForContainerState(
                                     false,
-                                    selectedContainer()?.status,
-                                    selectedContainer()?.state
+                                    selected()?.status,
+                                    selected()?.state
                                 )}
                             >
-                                {selectedContainer()?.status}
+                                {selected()?.status}
                             </text>
                         </box>
                         <box>
@@ -139,11 +139,11 @@ export default function LogsPane() {
                             <text
                                 fg={getColorForContainerState(
                                     false,
-                                    selectedContainer()?.status,
-                                    selectedContainer()?.state
+                                    selected()?.status,
+                                    selected()?.state
                                 )}
                             >
-                                {selectedContainer()?.state}
+                                {selected()?.state}
                             </text>
                         </box>
                     </box>
@@ -176,7 +176,7 @@ export default function LogsPane() {
                                 content={logs()}
                                 syntaxStyle={logSyntaxStyle}
                                 streaming={false}
-                                width={viewportWidth()}
+                                width={width()}
                                 fg={colors.textMuted}
                             />
                         </scrollbox>
