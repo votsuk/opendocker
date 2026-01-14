@@ -1,6 +1,14 @@
 import { type ScrollBoxRenderable, TextAttributes } from '@opentui/core';
 import { useKeyboard } from '@opentui/solid';
-import { createEffect, createSignal, For, Match, onMount, Switch } from 'solid-js';
+import {
+    createEffect,
+    createSignal,
+    For,
+    Match,
+    onMount,
+    Switch,
+    onCleanup,
+} from 'solid-js';
 import application, { type Container } from '@/stores/application';
 import { Pane } from '@/ui/pane';
 import { colors, getColorForContainerState } from '@/util/colors';
@@ -11,6 +19,7 @@ export default function ContainersPane() {
     const [selectedId, setSelectedId] = createSignal<string | undefined>();
     const [loaded, setLoaded] = createSignal<boolean>(false);
     let scroll: ScrollBoxRenderable;
+    const maxStateLength = () => Math.max(...store.containers.map(c => c.state.length), 0);
 
     function validateActiveContainer(containers: Array<Container>, activeId: string | undefined) {
         if (!activeId) return containers[0]?.id; 
@@ -20,6 +29,8 @@ export default function ContainersPane() {
 
     async function containerPulse() {
         const d = store.docker;
+        if (!d) return;
+
         const fetchedContainers = await d?.streamContainers() || [];
         setStore('containers', fetchedContainers);
 
@@ -34,9 +45,13 @@ export default function ContainersPane() {
     onMount(() => {
         containerPulse();
 
-        setInterval(() => {
+        const intervalId = setInterval(() => {
             containerPulse();
         }, 1000);
+
+        onCleanup(() => {
+            clearInterval(intervalId);
+        });
     });
 
     function getSelectedIndex() {
@@ -103,10 +118,10 @@ export default function ContainersPane() {
                     <scrollbox
                         ref={(r: ScrollBoxRenderable) => (scroll = r)}
                         scrollY={true}
+                        scrollX={true}
                         stickyScroll={true}
                         stickyStart="bottom"
                         height="100%"
-                        width="100%"
                     >
                         <For each={store.containers}>
                             {(container: Container) => {
@@ -115,11 +130,23 @@ export default function ContainersPane() {
                                     <box
                                         backgroundColor={isActive() ? colors.secondary : undefined}
                                         flexDirection="row"
-                                        justifyContent="space-between"
-                                        width="100%"
+                                        gap={1}
                                         paddingLeft={1}
                                         paddingRight={1}
                                     >
+                                        <text
+                                            fg={getColorForContainerState(
+                                                isActive(),
+                                                container.status,
+                                                container.state
+                                            )}
+                                            attributes={
+                                                isActive() ? TextAttributes.BOLD : undefined
+                                            }
+                                            flexShrink={0}
+                                        >
+                                            {container.state.padEnd(maxStateLength())}
+                                        </text>
                                         <text
                                             fg={
                                                 isActive()
@@ -129,17 +156,11 @@ export default function ContainersPane() {
                                             attributes={
                                                 isActive() ? TextAttributes.BOLD : undefined
                                             }
+                                            flexShrink={1}
+                                            flexGrow={1}
+                                            wrapMode='none'
                                         >
                                             {container.name}
-                                        </text>
-                                        <text
-                                            fg={getColorForContainerState(
-                                                isActive(),
-                                                container.status,
-                                                container.state
-                                            )}
-                                        >
-                                            {container.state}
                                         </text>
                                     </box>
                                 );
